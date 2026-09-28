@@ -1,0 +1,24 @@
+{
+  "name": "tatupeba",
+  "version": "0.1.0-dev.1",
+  "description": "Extrator e sincronizador do acervo Zotero para Obsidian e Joaju",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "tatupeba": "./bin/tatupeba.js"
+  },
+  "scripts": {
+    "start": "node bin/tatupeba.js sync",
+    "sync": "node bin/tatupeba.js sync",
+    "bib": "node bin/tatupeba.js bib",
+    "notes": "node bin/tatupeba.js notes",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "test": "node --test",
+    "test:coverage": "node --test --experimental-test-coverage"
+  },
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4"
+  }
+}

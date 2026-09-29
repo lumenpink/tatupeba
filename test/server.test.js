@@ -7,11 +7,11 @@ describe('Tatupeba HTTP Server', () => {
   const testPort = 3999;
 
   before(() => {
-    server = startServer({ port: testPort, host: '127.0.0.1' });
+    server = startServer({ port: testPort, host: '127.0.0.1', silent: true });
   });
 
-  after(() => {
-    server.close();
+  after(async () => {
+    await new Promise((resolve) => server.close(resolve));
   });
 
   it('responde 200 e status JSON em GET /status com cabeçalhos CORS', async () => {
@@ -28,5 +28,30 @@ describe('Tatupeba HTTP Server', () => {
       method: 'OPTIONS'
     });
     assert.equal(res.status, 204);
+  });
+
+  it('bloqueia acesso com 401 se serverToken estiver ativo e token for ausente/inválido', async () => {
+    const authServer = startServer({
+      port: 3998,
+      host: '127.0.0.1',
+      serverToken: 'minha_chave',
+      silent: true
+    });
+    try {
+      const resNoAuth = await fetch('http://127.0.0.1:3998/sync');
+      assert.equal(resNoAuth.status, 401);
+
+      const resWrongAuth = await fetch('http://127.0.0.1:3998/sync', {
+        headers: { Authorization: 'Bearer errado' }
+      });
+      assert.equal(resWrongAuth.status, 401);
+
+      const resValidKey = await fetch('http://127.0.0.1:3998/status', {
+        headers: { 'X-Api-Key': 'minha_chave' }
+      });
+      assert.equal(resValidKey.status, 200);
+    } finally {
+      await new Promise((resolve) => authServer.close(resolve));
+    }
   });
 });

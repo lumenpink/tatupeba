@@ -50,9 +50,13 @@ export function getConfig() {
     userConfig.joajuBibPath ||
     path.join(homeDir, 'src', 'joaju', 'data', 'referencias.bib');
 
+  const serverToken =
+    process.env.TATUPEBA_TOKEN || localEnv.TATUPEBA_TOKEN || userConfig.serverToken || '';
+
   return {
     userId,
     apiKey,
+    serverToken,
     obsidianRefsDir,
     joajuBibPath,
     apiVersion: '3'

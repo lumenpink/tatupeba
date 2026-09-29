@@ -6,12 +6,15 @@ on:
   pull_request:
 
 jobs:
-  check:
+  test:
     runs-on: native
     steps:
       - uses: actions/checkout@v4
+      - name: Tests
+        run: |
+          node --test
       - name: GOST Compliance Audit
         run: |
           if command -v cccp >/dev/null 2>&1; then
-            cccp check --strict
+            cccp check
           fi

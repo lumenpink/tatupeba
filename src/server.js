@@ -14,7 +14,7 @@ export function startServer(options = {}) {
     // Permite CORS do Obsidian
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Api-Key');
 
     if (req.method === 'OPTIONS') {
       res.writeHead(204);
@@ -24,6 +24,21 @@ export function startServer(options = {}) {
 
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     const pathname = url.pathname;
+
+    // Verificação de autenticação se serverToken estiver ativo
+    if (config.serverToken && pathname !== '/status') {
+      const authHeader = req.headers.authorization || '';
+      const apiKeyHeader = req.headers['x-api-key'] || '';
+      const token = authHeader.startsWith('Bearer ')
+        ? authHeader.slice(7).trim()
+        : authHeader.trim() || String(apiKeyHeader).trim();
+
+      if (token !== config.serverToken) {
+        res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: false, error: 'Não autorizado: token inválido ou ausente' }));
+        return;
+      }
+    }
 
     if (pathname === '/status') {
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -80,8 +95,10 @@ export function startServer(options = {}) {
   });
 
   server.listen(port, host, () => {
-    console.log(`🐾 [Tatupeba HTTP] Escutando em http://${host}:${port}`);
-    console.log('   Endpoints: /status, /sync, /bib');
+    if (!options.silent) {
+      console.log(`🐾 [Tatupeba HTTP] Escutando em http://${host}:${port}`);
+      console.log('   Endpoints: /status, /sync, /bib');
+    }
   });
 
   const intervalHours = Number.parseFloat(

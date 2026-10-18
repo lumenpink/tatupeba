@@ -17,7 +17,7 @@
     "test": "node --test",
     "test:coverage": "node --test --experimental-test-coverage"
   },
-  "license": "Apache-2.0",
+  "license": "GPL-3.0-or-later",
   "devDependencies": {
     "@biomejs/biome": "^1.9.4"
   }

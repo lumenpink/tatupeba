@@ -47,6 +47,11 @@ check_present 'Rollback' "Protocolo de rollback automatizado" || FAILED=1
 # 5. Purga de camadas órfãs
 check_present 'docker image prune -f' "Limpeza automática de camadas órfãs via docker image prune" || FAILED=1
 
+# 6. Validação de segurança e tolerância a falhas
+echo "=== [SECURITY] Validação de Chaves e Isolamento SSH ==="
+check_present 'OBITWO_SSH_KEY' "Variável de credencial soberana OBITWO_SSH_KEY presente" || FAILED=1
+check_present 'StrictHostKeyChecking=accept-new' "Opção segura de verificação SSH presente" || FAILED=1
+
 # 6. Testes de mutação
 echo "=== [MUTATION] Testes de Mutantes Críticos ==="
 TMP_MUTANT=$(mktemp)

@@ -1,20 +1,117 @@
-name: CI
+name: CI, Build & Sovereign CD
 
 on:
   push:
-    branches: [main]
+    branches: ["main"]
+    tags: ["v*"]
   pull_request:
+    branches: ["main"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: write
 
 jobs:
   test:
-    runs-on: native
+    name: "JavaScript — Tests & Audit"
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Tests
-        run: |
-          node --test
-      - name: GOST Compliance Audit
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Run Node.js Tests"
+        run: node --test
+
+      - name: "Audit Sovereign CD Workflow"
+        run: bash test/audit_cd_workflow.sh
+
+      - name: "CCCP Quality Audit"
         run: |
           if command -v cccp >/dev/null 2>&1; then
-            cccp check
+            cccp check --strict
           fi
+
+  build-and-deploy-docker:
+    name: "Container — Build & Sovereign CD (obitwo)"
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && github.event_name == 'push'
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "Build local Docker Image"
+        run: |
+          docker build -t lumenpink/tatupeba:latest -f ./Dockerfile .
+
+      - name: "Login to Docker Hub (Registry Backup)"
+        if: env.DOCKER_PASSWORD != ''
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME || secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN || secrets.DOCKER_PASSWORD }}
+        run: |
+          echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+
+      - name: "Push Image to Docker Hub (Registry Backup)"
+        if: env.DOCKER_PASSWORD != ''
+        env:
+          DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN || secrets.DOCKER_PASSWORD }}
+        run: |
+          docker push lumenpink/tatupeba:latest
+
+      - name: "Deploy Remotely to obitwo (Tailscale / SSH)"
+        env:
+          OBITWO_SSH_HOST: ${{ secrets.OBITWO_SSH_HOST || '100.90.43.39' }}
+          OBITWO_SSH_USER: ${{ secrets.OBITWO_SSH_USER || 'ubuntu' }}
+          OBITWO_SSH_KEY: ${{ secrets.OBITWO_SSH_KEY }}
+        run: |
+          echo "-> Iniciando deploy soberano no nó de borda obitwo ($OBITWO_SSH_HOST)..."
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          if [ -n "$OBITWO_SSH_KEY" ]; then
+            echo "$OBITWO_SSH_KEY" > ~/.ssh/id_obitwo
+            chmod 600 ~/.ssh/id_obitwo
+            SSH_OPTS="-i ~/.ssh/id_obitwo -o StrictHostKeyChecking=accept-new"
+          else
+            SSH_OPTS="-o StrictHostKeyChecking=accept-new"
+          fi
+
+          ssh $SSH_OPTS "$OBITWO_SSH_USER@$OBITWO_SSH_HOST" "
+            set -eo pipefail
+            cd ~/stacks/tatupeba
+            OLD_IMAGE_ID=\$(docker inspect --format='{{.Id}}' lumenpink/tatupeba:latest 2>/dev/null || true)
+            echo \"OLD_IMAGE_ID=\$OLD_IMAGE_ID\"
+
+            echo '-> Puxando nova imagem lumenpink/tatupeba:latest no obitwo...'
+            docker compose pull tatupeba
+            docker compose up -d --no-build tatupeba
+
+            echo '-> Validando estabilidade (healthcheck polling 15s)...'
+            SUCCESS=0
+            for i in \$(seq 1 15); do
+              STATUS=\$(docker inspect --format='{{.State.Status}}' tatupeba 2>/dev/null || echo 'unknown')
+              if [ \"\$STATUS\" = 'running' ]; then
+                echo \"  [PASS] Container tatupeba saudável e ativo (tentativa \$i/15).\"
+                SUCCESS=1
+                break
+              fi
+              sleep 1
+            done
+
+            if [ \$SUCCESS -ne 1 ]; then
+              echo '✘ [FALHA] Container tatupeba não estabilizou no obitwo! Acionando Rollback...'
+              if [ -n \"\$OLD_IMAGE_ID\" ]; then
+                docker tag \"\$OLD_IMAGE_ID\" lumenpink/tatupeba:latest
+                docker compose up -d --no-build tatupeba
+                echo '✔ Rollback concluído no obitwo.'
+              fi
+              exit 1
+            fi
+
+            echo '-> Limpando camadas órfãs no obitwo...'
+            docker image prune -f
+          "

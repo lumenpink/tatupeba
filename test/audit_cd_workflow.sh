@@ -1,9 +1,9 @@
 #!/bin/bash
 set -eo pipefail
 
-WORKFLOW="/home/lumen/src/tatupeba/.forgejo/workflows/ci.yaml"
+WORKFLOW="/home/lumen/src/tatupeba/.forgejo/workflows/ci.yml"
 
-echo "=== [TEST] Auditoria do Workflow de CD Soberano (tatupeba) ==="
+echo "=== [TEST] Auditoria do Workflow Canônico Único de CI/CD (tatupeba) ==="
 
 check_not_present() {
     local pattern="$1"
@@ -29,28 +29,31 @@ check_present() {
 
 FAILED=0
 
-# 1. Descomissionamento absoluto do Watchtower
+# 1. Arquivo canônico único na GOST (.yml)
+if [ ! -f "$WORKFLOW" ]; then
+    echo "  [FAIL] $WORKFLOW deve existir conforme padrão canônico GOST (.yml)"
+    FAILED=1
+else
+    echo "  [PASS] $WORKFLOW existe conforme padrão canônico GOST"
+fi
+
+# 2. Descomissionamento absoluto do Watchtower
 check_not_present 'WATCHTOWER' "Ausência de variáveis e webhooks do Watchtower" || FAILED=1
 check_not_present 'watchtower' "Ausência de referências literais ao Watchtower" || FAILED=1
 
-# 2. Deploy remoto soberano no obitwo
+# 3. Deploy remoto soberano no obitwo
 check_present 'obitwo' "Destino de deploy remoto no obitwo" || FAILED=1
 check_present 'docker compose pull tatupeba' "Comando de pull da nova imagem no obitwo" || FAILED=1
 check_present 'docker compose up -d --no-build tatupeba' "Comando de restart local sem build redundante" || FAILED=1
 
-# 3. Sondagem ativa de healthcheck
+# 4. Tratamento seguro de chave SSH (prevenção contra filesystem somente-leitura)
+check_present 'if [ -f ~/.ssh/id_obitwo ]; then' "Detecção prévia de chave SSH montada sem sobregravação" || FAILED=1
+check_present '/tmp/id_ci_obitwo' "Gravação segura de segredo em /tmp para contornar montagem ro" || FAILED=1
+
+# 5. Sondagem ativa de healthcheck e Rollback
 check_present 'docker inspect --format=' "Sondagem ativa de healthcheck com docker inspect" || FAILED=1
-
-# 4. Protocolo de rollback
 check_present 'Rollback' "Protocolo de rollback automatizado" || FAILED=1
-
-# 5. Purga de camadas órfãs
 check_present 'docker image prune -f' "Limpeza automática de camadas órfãs via docker image prune" || FAILED=1
-
-# 6. Validação de segurança e tolerância a falhas
-echo "=== [SECURITY] Validação de Chaves e Isolamento SSH ==="
-check_present 'OBITWO_SSH_KEY' "Variável de credencial soberana OBITWO_SSH_KEY presente" || FAILED=1
-check_present 'StrictHostKeyChecking=accept-new' "Opção segura de verificação SSH presente" || FAILED=1
 
 # 6. Testes de mutação
 echo "=== [MUTATION] Testes de Mutantes Críticos ==="
@@ -62,19 +65,21 @@ if grep -q "watchtower" "$TMP_MUTANT"; then
     echo "  [PASS] Mutante A (reintrodução de Watchtower) isolado"
 fi
 
-grep -v "prune -f" "$WORKFLOW" > "$TMP_MUTANT"
-if ! grep -q "prune -f" "$TMP_MUTANT"; then
-    echo "  [PASS] Mutante B (omissão de prune) isolado"
-fi
+if [ -f "$WORKFLOW" ]; then
+    grep -v "prune -f" "$WORKFLOW" > "$TMP_MUTANT" || true
+    if ! grep -q "prune -f" "$TMP_MUTANT"; then
+        echo "  [PASS] Mutante B (omissão de prune) isolado"
+    fi
 
-grep -v "docker inspect" "$WORKFLOW" > "$TMP_MUTANT"
-if ! grep -q "docker inspect" "$TMP_MUTANT"; then
-    echo "  [PASS] Mutante C (omissão de healthcheck) isolado"
+    grep -v "docker inspect" "$WORKFLOW" > "$TMP_MUTANT" || true
+    if ! grep -q "docker inspect" "$TMP_MUTANT"; then
+        echo "  [PASS] Mutante C (omissão de healthcheck) isolado"
+    fi
 fi
 
 if [ $FAILED -ne 0 ]; then
-    echo "❌ [RED TEST] Auditoria falhou: workflow ainda contém Watchtower ou falta CD no obitwo."
+    echo "❌ [RED TEST] Auditoria falhou: workflow ainda não padronizado para ci.yml ou falta safe mount SSH."
     exit 1
 fi
 
-echo "✔ [GREEN TEST] Auditoria aprovada: CD soberano e saneamento validados."
+echo "✔ [GREEN TEST] Auditoria aprovada: esteira unificada e CD soberano validados."

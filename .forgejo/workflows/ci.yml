@@ -71,15 +71,15 @@ jobs:
           OBITWO_SSH_KEY: ${{ secrets.OBITWO_SSH_KEY }}
         run: |
           echo "-> Iniciando deploy soberano no nó de borda obitwo ($OBITWO_SSH_HOST)..."
-          mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          if [ -n "$OBITWO_SSH_KEY" ]; then
-            echo "$OBITWO_SSH_KEY" > ~/.ssh/id_obitwo
-            chmod 600 ~/.ssh/id_obitwo
-            SSH_OPTS="-i ~/.ssh/id_obitwo -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15"
-          elif [ -f ~/.ssh/id_obitwo ]; then
+          if [ -f ~/.ssh/id_obitwo ]; then
             SSH_OPTS="-i ~/.ssh/id_obitwo -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15"
           elif [ -f ~/.ssh/id_ed25519 ]; then
             SSH_OPTS="-i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15"
+          elif [ -n "$OBITWO_SSH_KEY" ]; then
+            mkdir -p ~/.ssh && chmod 700 ~/.ssh
+            echo "$OBITWO_SSH_KEY" > /tmp/id_ci_obitwo
+            chmod 600 /tmp/id_ci_obitwo
+            SSH_OPTS="-i /tmp/id_ci_obitwo -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15"
           else
             SSH_OPTS="-o StrictHostKeyChecking=accept-new -o ConnectTimeout=15"
           fi

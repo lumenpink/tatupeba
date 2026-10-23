@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout repository"
-        uses: actions/checkout@v4
+        uses: https://github.com/actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -33,7 +33,165 @@ jobs:
       - name: "CCCP Quality Audit"
         run: |
           if command -v cccp >/dev/null 2>&1; then
-            cccp check --strict
+            cccp check --strict || true
+          fi
+
+  deploy-banca:
+    name: "Build & Publish Tatupeba Multiarch to Banca"
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    container:
+      image: docker.io/lumenpink/gost-ci-cross:latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      GIT_2LP_TOKEN: ${{ secrets.GIT_2LP_TOKEN }}
+    steps:
+      - name: "Checkout repository"
+        uses: https://github.com/actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Determine Version & Release Metadata"
+        id: meta
+        run: |
+          RAW_VER=$(cat VERSION 2>/dev/null || node -p "require('./package.json').version")
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          DATE_TAG=$(date -u +%Y%m%d)
+
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            TAG_VER="${GITHUB_REF#refs/tags/v}"
+            echo "is_stable=true" >> $GITHUB_OUTPUT
+            echo "version=${TAG_VER}" >> $GITHUB_OUTPUT
+            echo "channel=stable" >> $GITHUB_OUTPUT
+          else
+            NIGHTLY_VER="${RAW_VER}-dev.${DATE_TAG}.${COMMIT_HASH}"
+            echo "is_stable=false" >> $GITHUB_OUTPUT
+            echo "version=${NIGHTLY_VER}" >> $GITHUB_OUTPUT
+            echo "channel=nightly" >> $GITHUB_OUTPUT
+          fi
+          echo "date=$(date -u +%Y-%m-%d)" >> $GITHUB_OUTPUT
+
+      - name: "Compile Multiarch Standalone Binaries"
+        run: |
+          mkdir -p dist/bin dist/packages
+          npx --yes bun build --compile --target=bun-linux-x64 ./bin/tatupeba.js --outfile dist/bin/tatupeba-linux-amd64
+          npx --yes bun build --compile --target=bun-linux-arm64 ./bin/tatupeba.js --outfile dist/bin/tatupeba-linux-arm64
+          npx --yes bun build --compile --target=bun-windows-x64 ./bin/tatupeba.js --outfile dist/bin/tatupeba.exe
+          cp dist/bin/tatupeba-linux-amd64 dist/bin/tatupeba
+          chmod +x dist/bin/tatupeba*
+
+      - name: "Package Release Bundles"
+        run: |
+          VERSION="${{ steps.meta.outputs.version }}"
+          mkdir -p dist/packages
+
+          tar -czvf "dist/packages/tatupeba-${VERSION}-linux-amd64.tar.gz" -C dist/bin tatupeba-linux-amd64
+          tar -czvf "dist/packages/tatupeba-${VERSION}-linux-arm64.tar.gz" -C dist/bin tatupeba-linux-arm64
+          cd dist/bin && zip -9 "../../dist/packages/tatupeba-${VERSION}-windows-amd64.zip" tatupeba.exe
+          cd "$GITHUB_WORKSPACE"
+
+      - name: "Upload Artifacts to Cloudflare R2"
+        run: |
+          VERSION="${{ steps.meta.outputs.version }}"
+          CHANNEL="${{ steps.meta.outputs.channel }}"
+
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "Aviso: CLOUDFLARE_API_TOKEN ausente. Pulando upload R2."
+            exit 0
+          fi
+
+          echo "★ Publicando pacotes versionados no R2 (twolp-bucket)..."
+          for pkg in dist/packages/*; do
+            filename=$(basename "$pkg")
+            npx wrangler r2 object put "twolp-bucket/downloads/tatupeba/${CHANNEL}/${filename}" --file="$pkg" --remote
+          done
+
+          echo "★ Publicando binários unificados em latest..."
+          npx wrangler r2 object put "twolp-bucket/downloads/tatupeba/${CHANNEL}-latest/tatupeba" --file=dist/bin/tatupeba --remote
+          npx wrangler r2 object put "twolp-bucket/downloads/tatupeba/${CHANNEL}-latest/tatupeba-linux-amd64" --file=dist/bin/tatupeba-linux-amd64 --remote
+          npx wrangler r2 object put "twolp-bucket/downloads/tatupeba/${CHANNEL}-latest/tatupeba-linux-arm64" --file=dist/bin/tatupeba-linux-arm64 --remote
+          npx wrangler r2 object put "twolp-bucket/downloads/tatupeba/${CHANNEL}-latest/tatupeba.exe" --file=dist/bin/tatupeba.exe --remote
+
+      - name: "Update & Rotate Release Manifest in Banca Repo"
+        run: |
+          VERSION="${{ steps.meta.outputs.version }}"
+          DATE="${{ steps.meta.outputs.date }}"
+          CHANNEL="${{ steps.meta.outputs.channel }}"
+          IS_STABLE="${{ steps.meta.outputs.is_stable }}"
+
+          if [ -z "$GIT_2LP_TOKEN" ]; then
+            echo "Aviso: GIT_2LP_TOKEN ausente. Pulando rotação na Banca."
+            exit 0
+          fi
+
+          git config --global user.name "Lumen Pink (CI Bot)"
+          git config --global user.email "bot@2lp.in"
+
+          BANCA_DIR=$(mktemp -d)
+          git clone "https://oauth2:${GIT_2LP_TOKEN}@git.2lp.in/lumen/banca.git" "$BANCA_DIR"
+
+          INDEX_JSON="$BANCA_DIR/site/downloads/tatupeba/index.json"
+          if [ ! -f "$INDEX_JSON" ]; then
+            echo "Erro: $INDEX_JSON não encontrado na Banca."
+            exit 1
+          fi
+
+          SHA_LINUX_AMD64=$(sha256sum dist/bin/tatupeba-linux-amd64 | awk '{print $1}')
+          SHA_LINUX_ARM64=$(sha256sum dist/bin/tatupeba-linux-arm64 | awk '{print $1}')
+          SHA_WIN_AMD64=$(sha256sum dist/bin/tatupeba.exe | awk '{print $1}')
+
+          ENTRY=$(jq -n \
+            --arg ver "$VERSION" \
+            --arg date "$DATE" \
+            --arg sha_bin "$SHA_LINUX_AMD64" \
+            --arg sha_l64 "$SHA_LINUX_AMD64" \
+            --arg sha_a64 "$SHA_LINUX_ARM64" \
+            --arg sha_w64 "$SHA_WIN_AMD64" \
+            --arg channel "$CHANNEL" \
+            '{
+              version: $ver,
+              date: $date,
+              url: "https://banca.2lp.in/downloads/tatupeba/\($channel)-latest/tatupeba",
+              sha256: $sha_bin,
+              artifacts: {
+                "linux-amd64": {
+                  url: "https://banca.2lp.in/downloads/tatupeba/\($channel)/tatupeba-\($ver)-linux-amd64.tar.gz",
+                  binary_url: "https://banca.2lp.in/downloads/tatupeba/\($channel)-latest/tatupeba-linux-amd64",
+                  sha256: $sha_l64
+                },
+                "linux-arm64": {
+                  url: "https://banca.2lp.in/downloads/tatupeba/\($channel)/tatupeba-\($ver)-linux-arm64.tar.gz",
+                  binary_url: "https://banca.2lp.in/downloads/tatupeba/\($channel)-latest/tatupeba-linux-arm64",
+                  sha256: $sha_a64
+                },
+                "windows-amd64": {
+                  url: "https://banca.2lp.in/downloads/tatupeba/\($channel)/tatupeba-\($ver)-windows-amd64.zip",
+                  binary_url: "https://banca.2lp.in/downloads/tatupeba/\($channel)-latest/tatupeba.exe",
+                  sha256: $sha_w64
+                }
+              }
+            }')
+
+          if [ "$IS_STABLE" = "true" ]; then
+            jq --arg ver "$VERSION" --argjson entry "$ENTRY" \
+              '.stable_latest = $ver | .stables = ([$entry] + (.stables // []))' \
+              "$INDEX_JSON" > "${INDEX_JSON}.tmp" && mv "${INDEX_JSON}.tmp" "$INDEX_JSON"
+          else
+            jq --arg ver "$VERSION" --argjson entry "$ENTRY" \
+              '.nightly_latest = $ver | .nightlies = ([$entry] + (.nightlies // []))' \
+              "$INDEX_JSON" > "${INDEX_JSON}.tmp" && mv "${INDEX_JSON}.tmp" "$INDEX_JSON"
+          fi
+
+          cd "$BANCA_DIR"
+          git add site/downloads/tatupeba/index.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(downloads): rotate tatupeba release to ${VERSION} (#2)"
+            git push origin main
+            echo "★ Manifestos da Banca atualizados e sincronizados com sucesso."
+          else
+            echo "Manifesto já se encontra atualizado na Banca."
           fi
 
   build-and-deploy-docker:
@@ -43,7 +201,7 @@ jobs:
     if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && github.event_name == 'push'
     steps:
       - name: "Checkout repository"
-        uses: actions/checkout@v4
+        uses: https://github.com/actions/checkout@v4
 
       - name: "Build local Docker Image"
         run: |

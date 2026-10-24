@@ -18,6 +18,8 @@ jobs:
   test:
     name: "JavaScript — Tests & Audit"
     runs-on: ubuntu-latest
+    container:
+      image: gambi.2lp.in/lumen/gost-ci-cross:latest
     steps:
       - name: "Checkout repository"
         uses: https://github.com/actions/checkout@v4

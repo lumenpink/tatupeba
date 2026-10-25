@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed
+  - (ci) remover campo permissions incompativel com forgejo actions (closes #7)
+
 ### Fixes
   - (ci) tornar caminhos de auditoria de CI relativos (closes #6)
 

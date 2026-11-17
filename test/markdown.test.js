@@ -211,9 +211,7 @@ describe('Markdown Generator', () => {
       annotationType: 'ink',
       annotationColor: '#ff6666',
       annotationPosition: {
-        paths: [
-          [192.364, 208.835, 193.606, 208.695, 194.816, 208.6]
-        ]
+        paths: [[192.364, 208.835, 193.606, 208.695, 194.816, 208.6]]
       }
     };
     const svg = renderInkSvg(ann);

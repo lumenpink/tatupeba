@@ -120,6 +120,12 @@ describe('Markdown Generator', () => {
     ]);
   });
 
+  it('lida com tags nulas, vazias ou strings simples', () => {
+    assert.deepEqual(formatTags(null), ['referencia_zotero']);
+    assert.deepEqual(formatTags([]), ['referencia_zotero']);
+    assert.deepEqual(formatTags(['simples', '  ']), ['referencia_zotero', 'zot_simples']);
+  });
+
   it('formata colecoes hierarquicas para o frontmatter YAML', () => {
     const collectionsMap = {
       COL1: 'Educação',

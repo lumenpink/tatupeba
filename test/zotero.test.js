@@ -15,6 +15,15 @@ describe('Zotero Entity Organizer', () => {
     assert.equal(map.SUB2, 'Educação/Ensino Médio/Integrado');
   });
 
+  it('evita loop infinito em colecoes com referencia circular', () => {
+    const raw = [
+      { data: { key: 'C1', name: 'Ciclo 1', parentCollection: 'C2' } },
+      { data: { key: 'C2', name: 'Ciclo 2', parentCollection: 'C1' } }
+    ];
+    const map = buildCollectionsHierarchy(raw);
+    assert.ok(map.C1.includes('Ciclo'));
+  });
+
   it('separa referências, anexos e anotações relacionando-os por chave', () => {
     const items = [
       {

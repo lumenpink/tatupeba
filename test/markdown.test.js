@@ -175,6 +175,8 @@ describe('Markdown Generator', () => {
     assert.ok(yaml.includes('pages: "61-80"\n'));
     assert.ok(yaml.includes('doi: "10.21680/1981-1802"\n'));
     assert.ok(yaml.includes('issn: "1981-1802"\n'));
-    assert.ok(yaml.includes('url: "https://periodicos.ufrn.br/educacaoemquestao/article/view/7956"\n'));
+    assert.ok(
+      yaml.includes('url: "https://periodicos.ufrn.br/educacaoemquestao/article/view/7956"\n')
+    );
   });
 });

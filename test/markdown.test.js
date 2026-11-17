@@ -7,7 +7,8 @@ import {
   formatBibliographicMeta,
   formatCollections,
   formatTags,
-  generateLiteratureNote
+  generateLiteratureNote,
+  renderInkSvg
 } from '../src/markdown.js';
 
 describe('Markdown Generator', () => {
@@ -178,5 +179,56 @@ describe('Markdown Generator', () => {
     assert.ok(
       yaml.includes('url: "https://periodicos.ufrn.br/educacaoemquestao/article/view/7956"\n')
     );
+  });
+
+  it('renderiza tracos ink como elemento SVG vetorial', () => {
+    const ann = {
+      annotationType: 'ink',
+      annotationColor: '#ff2200',
+      annotationPosition: {
+        paths: [
+          [
+            [10, 20],
+            [30, 40],
+            [50, 60]
+          ],
+          [
+            [100, 100],
+            [120, 130]
+          ]
+        ]
+      }
+    };
+    const svg = renderInkSvg(ann);
+    assert.ok(svg.includes('<svg'));
+    assert.ok(svg.includes('stroke="#ff2200"'));
+    assert.ok(svg.includes('d="M 10 20 L 30 40 L 50 60"'));
+    assert.ok(svg.includes('d="M 100 100 L 120 130"'));
+  });
+
+  it('inclui desenho livre no formatAnnotations com callout e link do PDF', () => {
+    const pdfs = [{ key: 'PDFKEY1' }];
+    const annotationsByPdf = {
+      PDFKEY1: [
+        {
+          annotationType: 'ink',
+          annotationPageLabel: '15',
+          annotationColor: '#0055ff',
+          annotationPosition: {
+            paths: [
+              [
+                [5, 5],
+                [25, 25]
+              ]
+            ]
+          }
+        }
+      ]
+    };
+    const formatted = formatAnnotations(pdfs, annotationsByPdf);
+    assert.ok(formatted.includes('> [!quote] ✍️ Desenho Livre (p. 15)'));
+    assert.ok(formatted.includes('<svg'));
+    assert.ok(formatted.includes('stroke="#0055ff"'));
+    assert.ok(formatted.includes('zotero://open-pdf/library/items/PDFKEY1?page=15'));
   });
 });

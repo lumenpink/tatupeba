@@ -206,6 +206,22 @@ describe('Markdown Generator', () => {
     assert.ok(svg.includes('d="M 100 100 L 120 130"'));
   });
 
+  it('renderiza tracos ink com array linear de coordenadas (padrao real Zotero)', () => {
+    const ann = {
+      annotationType: 'ink',
+      annotationColor: '#ff6666',
+      annotationPosition: {
+        paths: [
+          [192.364, 208.835, 193.606, 208.695, 194.816, 208.6]
+        ]
+      }
+    };
+    const svg = renderInkSvg(ann);
+    assert.ok(svg.includes('<svg'));
+    assert.ok(svg.includes('stroke="#ff6666"'));
+    assert.ok(svg.includes('d="M 192.364 208.835 L 193.606 208.695 L 194.816 208.6"'));
+  });
+
   it('retorna string vazia para ink com json corrompido ou sem caminhos', () => {
     assert.equal(renderInkSvg({ annotationPosition: '{invalido' }), '');
     assert.equal(renderInkSvg({ annotationPosition: { paths: [] } }), '');

@@ -9,6 +9,7 @@
   - (ci) tornar caminhos de auditoria de CI relativos (closes #6)
 
 ### Features
+  - (annotations) suporte a paths lineares do Zotero Web API no ink svg (closes #14)
   - (annotations) baixar e transcluir recortes de area do tipo image (closes #13)
   - (annotations) extrair e renderizar anotacoes ink como svg nativo (closes #12)
   - (markdown) enriquecer frontmatter com metadados bibliograficos completos (closes #11)

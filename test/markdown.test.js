@@ -24,12 +24,26 @@ describe('Markdown Generator', () => {
     assert.equal(extractCitekey(data), 'latour2012');
   });
 
-  it('usa fallback da key Zotero se não houver Citation Key', () => {
+  it('gera citekey no padrao Better BibTeX se nao houver Citation Key nem extra', () => {
     const data = {
-      key: 'XYZ789',
-      extra: 'Nota avulsa'
+      key: '4H65RQTM',
+      title: 'A relação da educação profissional e tecnológica com a universalização da educação básica',
+      date: '2007-09-01',
+      creators: [{ firstName: 'Gaudêncio', lastName: 'Frigotto' }]
     };
-    assert.equal(extractCitekey(data), 'XYZ789');
+    const citekey = extractCitekey(data);
+    assert.equal(citekey, 'frigottoRelacaoEducacaoProfissional2007');
+    assert.notEqual(citekey, '4H65RQTM');
+  });
+
+  it('gera citekey no padrao Better BibTeX para organizacao e sem data (nodate)', () => {
+    const data = {
+      key: 'ORG12345',
+      title: 'Diretrizes Curriculares Nacionais',
+      creators: [{ name: 'Ministério da Educação' }]
+    };
+    const citekey = extractCitekey(data);
+    assert.equal(citekey, 'ministerioDaEducacaoDiretrizesCurricularesNacionaisnodate');
   });
 
   it('formata lista de autores para links do Obsidian e YAML', () => {

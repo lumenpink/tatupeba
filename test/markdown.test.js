@@ -27,7 +27,8 @@ describe('Markdown Generator', () => {
   it('gera citekey no padrao Better BibTeX se nao houver Citation Key nem extra', () => {
     const data = {
       key: '4H65RQTM',
-      title: 'A relação da educação profissional e tecnológica com a universalização da educação básica',
+      title:
+        'A relação da educação profissional e tecnológica com a universalização da educação básica',
       date: '2007-09-01',
       creators: [{ firstName: 'Gaudêncio', lastName: 'Frigotto' }]
     };

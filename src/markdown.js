@@ -49,14 +49,13 @@ const STOPWORDS = new Set([
 ]);
 
 function removeDiacritics(str) {
-  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return str.normalize('NFD').replace(/\p{Diacritic}/gu, '');
 }
 
 export function buildBbtCitekey(data) {
   let authorPart = '';
   if (Array.isArray(data?.creators) && data.creators.length > 0) {
-    const primary =
-      data.creators.find((c) => c.creatorType === 'author') || data.creators[0];
+    const primary = data.creators.find((c) => c.creatorType === 'author') || data.creators[0];
     const rawName = primary.lastName || primary.name || primary.firstName || '';
     const words = removeDiacritics(rawName)
       .split(/[^a-zA-Z0-9]+/)
@@ -78,14 +77,10 @@ export function buildBbtCitekey(data) {
       .split(/[^a-zA-Z0-9]+/)
       .filter((w) => w.length > 0);
 
-    const significant = words
-      .filter((w) => !STOPWORDS.has(w.toLowerCase()))
-      .slice(0, 3);
+    const significant = words.filter((w) => !STOPWORDS.has(w.toLowerCase())).slice(0, 3);
 
     const chosen = significant.length > 0 ? significant : words.slice(0, 3);
-    titlePart = chosen
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-      .join('');
+    titlePart = chosen.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join('');
   }
 
   let yearPart = 'nodate';

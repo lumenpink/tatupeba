@@ -9,6 +9,7 @@
   - (ci) tornar caminhos de auditoria de CI relativos (closes #6)
 
 ### Features
+  - (markdown) enriquecer frontmatter com metadados bibliograficos completos (closes #11)
   - (markdown) mapear arvore de colecoes e tags zotero prefixadas com zot_ (closes #10)
   - (citekey) gerar citekey no formato Better BibTeX autorTituloAno e eliminar fallback para hashes zotero (closes #9)
   - (ci) padronizar ci.yml unico e safe mount de chave ssh (closes #5)

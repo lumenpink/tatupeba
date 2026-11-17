@@ -22,7 +22,8 @@ export {
   fetchAllCollections,
   fetchAllItems,
   fetchBibTeX,
-  organizeEntities
+  organizeEntities,
+  syncAnnotationImages
 } from './zotero.js';
 
 export async function syncAll(customConfig = {}, onProgress = null) {
@@ -50,6 +51,16 @@ export async function syncAll(customConfig = {}, onProgress = null) {
 
   const items = await fetchAllItems(config, onProgress);
   const organized = organizeEntities(items);
+
+  // Baixa imagens de anotações para o cofre
+  try {
+    await syncAnnotationImages(organized.annotations, config, onProgress);
+  } catch (err) {
+    if (onProgress) {
+      onProgress({ action: 'images_warn', message: err.message });
+    }
+  }
+
   const writtenNotes = await writeAllNotes(organized, config.obsidianRefsDir, collectionsMap);
 
   if (onProgress) {

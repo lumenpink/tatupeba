@@ -1,3 +1,6 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
 const RETRY_MAX = 3;
 const RETRY_BASE_DELAY_MS = 1000;
 
@@ -89,6 +92,59 @@ export async function fetchAllCollections(config, onProgress) {
   }
 
   return buildCollectionsHierarchy(allCols);
+}
+
+export async function syncAnnotationImages(annotations = [], config = {}, onProgress = null) {
+  if (!config.obsidianRefsDir || !config.userId || !config.apiKey) {
+    return;
+  }
+
+  const attachDir = path.join(config.obsidianRefsDir, '01_zotero', 'attachments');
+  await fs.mkdir(attachDir, { recursive: true });
+
+  const headers = {
+    'Zotero-API-Version': config.apiVersion || '3',
+    Authorization: `Bearer ${config.apiKey}`
+  };
+
+  for (const ann of annotations) {
+    if (ann.annotationType !== 'image') continue;
+
+    const fileName = `${ann.key}.png`;
+    const localPath = path.join(attachDir, fileName);
+    const relPath = `01_zotero/attachments/${fileName}`;
+
+    let exists = false;
+    try {
+      await fs.access(localPath);
+      exists = true;
+    } catch {
+      exists = false;
+    }
+
+    if (exists) {
+      ann.imageRelativePath = relPath;
+      continue;
+    }
+
+    // Baixa o arquivo da API do Zotero
+    const url = `https://api.zotero.org/users/${config.userId}/items/${ann.key}/file`;
+    try {
+      if (onProgress) {
+        onProgress({ action: 'fetch_annotation_image', key: ann.key });
+      }
+      const res = await fetchWithRetry(url, { headers });
+      if (res.ok) {
+        const buffer = await res.arrayBuffer();
+        await fs.writeFile(localPath, Buffer.from(buffer));
+        ann.imageRelativePath = relPath;
+      }
+    } catch (err) {
+      if (onProgress) {
+        onProgress({ action: 'annotation_image_warn', key: ann.key, message: err.message });
+      }
+    }
+  }
 }
 
 export async function fetchAllItems(config, onProgress) {

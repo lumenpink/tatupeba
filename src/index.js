@@ -9,6 +9,7 @@ export {
   extractCitekey,
   formatAnnotations,
   formatAuthors,
+  formatBibliographicMeta,
   formatCollections,
   formatTags,
   generateLiteratureNote,

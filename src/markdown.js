@@ -197,6 +197,41 @@ export function formatCollections(collectionKeys = [], collectionsMap = {}) {
   return yaml;
 }
 
+export function formatBibliographicMeta(reference = {}) {
+  const fields = [
+    { key: 'item_type', val: reference.itemType },
+    {
+      key: 'publication',
+      val: reference.publicationTitle || reference.bookTitle || reference.proceedingsTitle
+    },
+    { key: 'publisher', val: reference.publisher },
+    { key: 'place', val: reference.place },
+    { key: 'volume', val: reference.volume },
+    { key: 'issue', val: reference.issue || reference.number },
+    { key: 'pages', val: reference.pages },
+    { key: 'doi', val: reference.doi },
+    { key: 'isbn', val: reference.isbn },
+    { key: 'issn', val: reference.issn },
+    { key: 'url', val: reference.url },
+    { key: 'date', val: reference.date },
+    { key: 'edition', val: reference.edition }
+  ];
+
+  let yaml = '';
+  for (const { key, val } of fields) {
+    if (val !== undefined && val !== null && String(val).trim() !== '') {
+      const cleanVal = String(val).trim();
+      if (key === 'item_type') {
+        yaml += `${key}: ${cleanVal}\n`;
+      } else {
+        yaml += `${key}: "${cleanVal.replace(/"/g, '\\"')}"\n`;
+      }
+    }
+  }
+
+  return yaml;
+}
+
 export function formatAnnotations(itemPdfs, annotationsByPdf) {
   let annotationsMD = '';
 
@@ -238,6 +273,7 @@ export function generateLiteratureNote(
     : 'Nenhum resumo disponível.';
   const { yaml: authorsYaml, links: authorsLinks } = formatAuthors(reference.creators);
   const collectionsYaml = formatCollections(reference.collections, collectionsMap);
+  const bibMetaYaml = formatBibliographicMeta(reference);
   const tagsList = formatTags(reference.tags);
   const tagsYaml = tagsList.map((t) => `  - ${t}`).join('\n');
 
@@ -248,10 +284,18 @@ export function generateLiteratureNote(
 
   const annotationsText = formatAnnotations(pdfs, annotationsByPdf);
 
+  let metaBlock = '';
+  if (bibMetaYaml) {
+    metaBlock += bibMetaYaml;
+  }
+  if (collectionsYaml) {
+    metaBlock += collectionsYaml;
+  }
+
   return `---
 title: "${title}"${authorsYaml}year: ${year}
-citekey: ${citekey}${collectionsYaml}
-tags:
+citekey: ${citekey}
+${metaBlock}tags:
 ${tagsYaml}
 ---
 

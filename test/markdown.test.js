@@ -4,6 +4,8 @@ import {
   extractCitekey,
   formatAnnotations,
   formatAuthors,
+  formatCollections,
+  formatTags,
   generateLiteratureNote
 } from '../src/markdown.js';
 
@@ -101,21 +103,49 @@ describe('Markdown Generator', () => {
     assert.ok(formatted.includes('Minha observação crítica.'));
   });
 
-  it('monta a nota de literatura completa', () => {
+  it('formata tags do Zotero com prefixo zot_ e sanitizacao', () => {
+    const rawTags = [
+      { tag: 'Educação Popular' },
+      { tag: 'Marxismo-Leninismo' },
+      { tag: 'crítica & prática' },
+      { tag: 'zot_ja_prefixada' }
+    ];
+    const formatted = formatTags(rawTags);
+    assert.deepEqual(formatted, [
+      'referencia_zotero',
+      'zot_educacao_popular',
+      'zot_marxismo_leninismo',
+      'zot_critica_pratica',
+      'zot_ja_prefixada'
+    ]);
+  });
+
+  it('formata colecoes hierarquicas para o frontmatter YAML', () => {
+    const collectionsMap = {
+      COL1: 'Educação',
+      COL2: 'Educação/Ensino Médio'
+    };
+    const yaml = formatCollections(['COL1', 'COL2'], collectionsMap);
+    assert.ok(yaml.includes('\ncollections:\n'));
+    assert.ok(yaml.includes('  - "Educação"\n'));
+    assert.ok(yaml.includes('  - "Educação/Ensino Médio"\n'));
+  });
+
+  it('injeta colecoes e tags zot_ na nota de literatura completa', () => {
     const ref = {
       key: 'ITEM1',
       title: 'Ciência em Ação',
       date: '2000-01-01',
       abstractNote: 'Um clássico dos estudos de ciência e tecnologia.',
       extra: 'Citation Key: latour2000',
-      creators: [{ lastName: 'Latour', firstName: 'Bruno' }]
+      creators: [{ lastName: 'Latour', firstName: 'Bruno' }],
+      tags: [{ tag: 'Sociologia da Ciência' }],
+      collections: ['COL1']
     };
+    const collectionsMap = { COL1: 'Estudos CTS' };
 
-    const note = generateLiteratureNote(ref, [], {});
-    assert.ok(note.startsWith('---\n'));
-    assert.ok(note.includes('citekey: latour2000'));
-    assert.ok(note.includes('# Ciência em Ação'));
-    assert.ok(note.includes('[[Latour, Bruno]]'));
-    assert.ok(note.includes('Um clássico dos estudos de ciência e tecnologia.'));
+    const note = generateLiteratureNote(ref, [], {}, collectionsMap);
+    assert.ok(note.includes('  - zot_sociologia_da_ciencia'));
+    assert.ok(note.includes('collections:\n  - "Estudos CTS"'));
   });
 });

@@ -150,6 +150,53 @@ export function formatAuthors(creators = []) {
   };
 }
 
+export function formatTags(rawTags = []) {
+  const result = ['referencia_zotero'];
+  const seen = new Set(result);
+
+  if (Array.isArray(rawTags)) {
+    for (const item of rawTags) {
+      const raw = typeof item === 'string' ? item : item?.tag;
+      if (!raw || typeof raw !== 'string') continue;
+      const clean = removeDiacritics(raw)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+
+      if (!clean) continue;
+      const tagWithPrefix = clean.startsWith('zot_') ? clean : `zot_${clean}`;
+      if (!seen.has(tagWithPrefix)) {
+        seen.add(tagWithPrefix);
+        result.push(tagWithPrefix);
+      }
+    }
+  }
+
+  return result;
+}
+
+export function formatCollections(collectionKeys = [], collectionsMap = {}) {
+  if (!Array.isArray(collectionKeys) || collectionKeys.length === 0) {
+    return '';
+  }
+
+  const names = [];
+  for (const key of collectionKeys) {
+    const name = collectionsMap[key] || key;
+    if (name && !names.includes(name)) {
+      names.push(name);
+    }
+  }
+
+  if (names.length === 0) return '';
+
+  let yaml = '\ncollections:\n';
+  for (const name of names) {
+    yaml += `  - "${name.replace(/"/g, '\\"')}"\n`;
+  }
+  return yaml;
+}
+
 export function formatAnnotations(itemPdfs, annotationsByPdf) {
   let annotationsMD = '';
 
@@ -177,7 +224,12 @@ export function formatAnnotations(itemPdfs, annotationsByPdf) {
   return annotationsMD.trim();
 }
 
-export function generateLiteratureNote(reference, pdfs = [], annotationsByPdf = {}) {
+export function generateLiteratureNote(
+  reference,
+  pdfs = [],
+  annotationsByPdf = {},
+  collectionsMap = {}
+) {
   const citekey = extractCitekey(reference);
   const title = (reference.title || 'Sem Título').replace(/"/g, "'").trim();
   const year = reference.date ? reference.date.substring(0, 4) : 'S.d.';
@@ -185,6 +237,9 @@ export function generateLiteratureNote(reference, pdfs = [], annotationsByPdf = 
     ? reference.abstractNote.trim()
     : 'Nenhum resumo disponível.';
   const { yaml: authorsYaml, links: authorsLinks } = formatAuthors(reference.creators);
+  const collectionsYaml = formatCollections(reference.collections, collectionsMap);
+  const tagsList = formatTags(reference.tags);
+  const tagsYaml = tagsList.map((t) => `  - ${t}`).join('\n');
 
   const primaryPdf = pdfs.length > 0 ? pdfs[0] : null;
   const pdfLinkHeader = primaryPdf
@@ -195,9 +250,9 @@ export function generateLiteratureNote(reference, pdfs = [], annotationsByPdf = 
 
   return `---
 title: "${title}"${authorsYaml}year: ${year}
-citekey: ${citekey}
+citekey: ${citekey}${collectionsYaml}
 tags:
-  - referencia_zotero
+${tagsYaml}
 ---
 
 # ${title}
@@ -215,14 +270,14 @@ ${annotationsText || '*Nenhuma marcação extraída.*'}
 `;
 }
 
-export async function writeAllNotes(organized, outputDir) {
+export async function writeAllNotes(organized, outputDir, collectionsMap = {}) {
   await fs.mkdir(outputDir, { recursive: true });
 
   const written = [];
   for (const ref of organized.references) {
     const citekey = extractCitekey(ref);
     const pdfs = organized.pdfsByReference[ref.key] || [];
-    const content = generateLiteratureNote(ref, pdfs, organized.annotationsByPdf);
+    const content = generateLiteratureNote(ref, pdfs, organized.annotationsByPdf, collectionsMap);
 
     // Sanitiza nome do arquivo
     const safeCitekey = citekey.replace(/[<>:"/\\|?*]/g, '_');

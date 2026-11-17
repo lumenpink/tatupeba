@@ -1,7 +1,7 @@
 import { syncBibTeX } from './bibtex.js';
 import { getConfig } from './config.js';
 import { writeAllNotes } from './markdown.js';
-import { fetchAllItems, organizeEntities } from './zotero.js';
+import { fetchAllCollections, fetchAllItems, organizeEntities } from './zotero.js';
 
 export { cleanBibTeX, countBibEntries, saveBibTeX, syncBibTeX } from './bibtex.js';
 export { getConfig } from './config.js';
@@ -9,11 +9,19 @@ export {
   extractCitekey,
   formatAnnotations,
   formatAuthors,
+  formatCollections,
+  formatTags,
   generateLiteratureNote,
   writeAllNotes
 } from './markdown.js';
 export { startServer } from './server.js';
-export { fetchAllItems, fetchBibTeX, organizeEntities } from './zotero.js';
+export {
+  buildCollectionsHierarchy,
+  fetchAllCollections,
+  fetchAllItems,
+  fetchBibTeX,
+  organizeEntities
+} from './zotero.js';
 
 export async function syncAll(customConfig = {}, onProgress = null) {
   const config = { ...getConfig(), ...customConfig };
@@ -28,10 +36,19 @@ export async function syncAll(customConfig = {}, onProgress = null) {
     onProgress({ action: 'sync_start', userId: config.userId });
   }
 
-  // 1. Sincronização dos itens e notas Markdown
+  // 1. Sincronização dos itens, coleções e notas Markdown
+  let collectionsMap = {};
+  try {
+    collectionsMap = await fetchAllCollections(config, onProgress);
+  } catch (err) {
+    if (onProgress) {
+      onProgress({ action: 'collections_warn', message: err.message });
+    }
+  }
+
   const items = await fetchAllItems(config, onProgress);
   const organized = organizeEntities(items);
-  const writtenNotes = await writeAllNotes(organized, config.obsidianRefsDir);
+  const writtenNotes = await writeAllNotes(organized, config.obsidianRefsDir, collectionsMap);
 
   if (onProgress) {
     onProgress({

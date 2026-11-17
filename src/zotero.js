@@ -27,6 +27,70 @@ async function fetchWithRetry(url, options, attempt = 1) {
   }
 }
 
+export function buildCollectionsHierarchy(rawCollections = []) {
+  const byKey = {};
+  for (const col of rawCollections) {
+    const data = col.data || col;
+    byKey[data.key] = {
+      name: data.name || data.key,
+      parent: data.parentCollection || false
+    };
+  }
+
+  const result = {};
+  function getPath(key, visited = new Set()) {
+    if (visited.has(key)) return byKey[key]?.name || key;
+    visited.add(key);
+
+    const item = byKey[key];
+    if (!item) return key;
+    if (!item.parent || !byKey[item.parent]) {
+      return item.name;
+    }
+    return `${getPath(item.parent, visited)}/${item.name}`;
+  }
+
+  for (const key of Object.keys(byKey)) {
+    result[key] = getPath(key);
+  }
+
+  return result;
+}
+
+export async function fetchAllCollections(config, onProgress) {
+  const { userId, apiKey, apiVersion = '3' } = config;
+  const headers = {
+    'Zotero-API-Version': apiVersion,
+    Authorization: `Bearer ${apiKey}`
+  };
+
+  let allCols = [];
+  let start = 0;
+  const limit = 100;
+  let hasMore = true;
+
+  while (hasMore) {
+    const url = `https://api.zotero.org/users/${userId}/collections?limit=${limit}&start=${start}`;
+    if (onProgress) {
+      onProgress({ action: 'fetch_collections', start, limit });
+    }
+    const res = await fetchWithRetry(url, { headers });
+    const chunk = await res.json();
+    allCols = allCols.concat(chunk);
+
+    const linkHeader = res.headers.get('link');
+    if (linkHeader?.includes('rel="next"')) {
+      start += limit;
+    } else if (chunk.length >= limit) {
+      start += limit;
+    } else {
+      hasMore = false;
+    }
+  }
+
+  return buildCollectionsHierarchy(allCols);
+}
+
 export async function fetchAllItems(config, onProgress) {
   const { userId, apiKey, apiVersion = '3' } = config;
   const headers = {

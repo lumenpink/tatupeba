@@ -1,6 +1,106 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+const STOPWORDS = new Set([
+  'a',
+  'o',
+  'as',
+  'os',
+  'um',
+  'uma',
+  'uns',
+  'umas',
+  'de',
+  'do',
+  'da',
+  'dos',
+  'das',
+  'em',
+  'no',
+  'na',
+  'nos',
+  'nas',
+  'por',
+  'pelo',
+  'pela',
+  'pelos',
+  'pelas',
+  'para',
+  'pra',
+  'com',
+  'sem',
+  'sob',
+  'sobre',
+  'e',
+  'ou',
+  'que',
+  'the',
+  'an',
+  'and',
+  'or',
+  'of',
+  'in',
+  'on',
+  'at',
+  'to',
+  'for',
+  'with',
+  'by'
+]);
+
+function removeDiacritics(str) {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+export function buildBbtCitekey(data) {
+  let authorPart = '';
+  if (Array.isArray(data?.creators) && data.creators.length > 0) {
+    const primary =
+      data.creators.find((c) => c.creatorType === 'author') || data.creators[0];
+    const rawName = primary.lastName || primary.name || primary.firstName || '';
+    const words = removeDiacritics(rawName)
+      .split(/[^a-zA-Z0-9]+/)
+      .filter((w) => w.length > 0);
+
+    if (words.length > 0) {
+      const first = words[0].toLowerCase();
+      const rest = words
+        .slice(1)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join('');
+      authorPart = `${first}${rest}`;
+    }
+  }
+
+  let titlePart = '';
+  if (data?.title && typeof data.title === 'string') {
+    const words = removeDiacritics(data.title)
+      .split(/[^a-zA-Z0-9]+/)
+      .filter((w) => w.length > 0);
+
+    const significant = words
+      .filter((w) => !STOPWORDS.has(w.toLowerCase()))
+      .slice(0, 3);
+
+    const chosen = significant.length > 0 ? significant : words.slice(0, 3);
+    titlePart = chosen
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join('');
+  }
+
+  let yearPart = 'nodate';
+  const rawDate = data?.date || data?.year || '';
+  if (rawDate) {
+    const yearMatch = String(rawDate).match(/\b(\d{4})\b/);
+    if (yearMatch) {
+      yearPart = yearMatch[1];
+    }
+  }
+
+  const generated = `${authorPart}${titlePart}${yearPart}`.trim();
+  return generated || 'semChave';
+}
+
 export function extractCitekey(data) {
   if (data?.citationKey && typeof data.citationKey === 'string' && data.citationKey.trim()) {
     return data.citationKey.trim();
@@ -11,7 +111,7 @@ export function extractCitekey(data) {
       return match[1].trim();
     }
   }
-  return data?.key || 'sem_chave';
+  return buildBbtCitekey(data);
 }
 
 export function formatAuthors(creators = []) {

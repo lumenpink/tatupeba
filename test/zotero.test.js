@@ -98,4 +98,9 @@ describe('Zotero Entity Organizer', () => {
       await fs.rm(tmpDir, { recursive: true, force: true });
     }
   });
+
+  it('syncAnnotationImages lida com configuracao incompleta sem erros', async () => {
+    await assert.doesNotReject(syncAnnotationImages([], {}));
+    await assert.doesNotReject(syncAnnotationImages([{ annotationType: 'image' }], null));
+  });
 });

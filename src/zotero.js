@@ -95,7 +95,7 @@ export async function fetchAllCollections(config, onProgress) {
 }
 
 export async function syncAnnotationImages(annotations = [], config = {}, onProgress = null) {
-  if (!config.obsidianRefsDir || !config.userId || !config.apiKey) {
+  if (!config || !config.obsidianRefsDir || !config.userId || !config.apiKey) {
     return;
   }
 

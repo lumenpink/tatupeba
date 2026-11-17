@@ -4,6 +4,7 @@ import {
   extractCitekey,
   formatAnnotations,
   formatAuthors,
+  formatBibliographicMeta,
   formatCollections,
   formatTags,
   generateLiteratureNote
@@ -153,5 +154,27 @@ describe('Markdown Generator', () => {
     const note = generateLiteratureNote(ref, [], {}, collectionsMap);
     assert.ok(note.includes('  - zot_sociologia_da_ciencia'));
     assert.ok(note.includes('collections:\n  - "Estudos CTS"'));
+  });
+
+  it('formata metadados bibliograficos completos no YAML', () => {
+    const ref = {
+      itemType: 'journalArticle',
+      publicationTitle: 'Revista Educação em Questão',
+      volume: '52',
+      issue: '38',
+      pages: '61-80',
+      doi: '10.21680/1981-1802',
+      issn: '1981-1802',
+      url: 'https://periodicos.ufrn.br/educacaoemquestao/article/view/7956'
+    };
+    const yaml = formatBibliographicMeta(ref);
+    assert.ok(yaml.includes('item_type: journalArticle\n'));
+    assert.ok(yaml.includes('publication: "Revista Educação em Questão"\n'));
+    assert.ok(yaml.includes('volume: "52"\n'));
+    assert.ok(yaml.includes('issue: "38"\n'));
+    assert.ok(yaml.includes('pages: "61-80"\n'));
+    assert.ok(yaml.includes('doi: "10.21680/1981-1802"\n'));
+    assert.ok(yaml.includes('issn: "1981-1802"\n'));
+    assert.ok(yaml.includes('url: "https://periodicos.ufrn.br/educacaoemquestao/article/view/7956"\n'));
   });
 });

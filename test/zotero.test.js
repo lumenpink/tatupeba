@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { describe, it } from 'node:test';
-import { buildCollectionsHierarchy, organizeEntities } from '../src/zotero.js';
+import {
+  buildCollectionsHierarchy,
+  organizeEntities,
+  syncAnnotationImages
+} from '../src/zotero.js';
 
 describe('Zotero Entity Organizer', () => {
   it('constroi mapa hierarquico de colecoes', () => {
@@ -62,5 +69,33 @@ describe('Zotero Entity Organizer', () => {
 
     assert.equal(result.annotationsByPdf.ATT1.length, 1);
     assert.equal(result.annotationsByPdf.ATT1[0].key, 'ANN1');
+  });
+
+  it('baixa e associa imageRelativePath para anotacoes do tipo image', async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'tatupeba-img-test-'));
+    try {
+      const annotations = [
+        {
+          key: 'IMG1',
+          annotationType: 'image'
+        }
+      ];
+
+      // Cria previamente para testar cache
+      const attachDir = path.join(tmpDir, '01_zotero', 'attachments');
+      await fs.mkdir(attachDir, { recursive: true });
+      await fs.writeFile(path.join(attachDir, 'IMG1.png'), 'fake-png-data');
+
+      const config = {
+        obsidianRefsDir: tmpDir,
+        userId: '123',
+        apiKey: 'key'
+      };
+
+      await syncAnnotationImages(annotations, config);
+      assert.equal(annotations[0].imageRelativePath, '01_zotero/attachments/IMG1.png');
+    } finally {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    }
   });
 });

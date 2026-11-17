@@ -97,6 +97,10 @@ export function buildBbtCitekey(data) {
     }
   }
 
+  if (!authorPart && !titlePart) {
+    return 'semChave';
+  }
+
   const generated = `${authorPart}${titlePart}${yearPart}`.trim();
   return generated || 'semChave';
 }

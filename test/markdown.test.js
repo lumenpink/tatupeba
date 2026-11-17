@@ -46,6 +46,29 @@ describe('Markdown Generator', () => {
     assert.equal(citekey, 'ministerioDaEducacaoDiretrizesCurricularesNacionaisnodate');
   });
 
+  it('elimina acentos no autor e extrai ano de string complexa', () => {
+    const data = {
+      key: 'DURK1',
+      title: 'Da divisão do trabalho social',
+      date: 'c. 1893 (reimpressão)',
+      creators: [{ firstName: 'Émile', lastName: 'Durkheim' }]
+    };
+    assert.equal(extractCitekey(data), 'durkheimDivisaoTrabalhoSocial1893');
+  });
+
+  it('lida com titulo composto apenas por stopwords e sem autor', () => {
+    const data = {
+      key: 'ANON1',
+      title: 'O e A',
+      date: '2024'
+    };
+    assert.equal(extractCitekey(data), 'OEA2024');
+  });
+
+  it('retorna fallback seguro se item estiver vazio', () => {
+    assert.equal(extractCitekey({}), 'semChave');
+  });
+
   it('formata lista de autores para links do Obsidian e YAML', () => {
     const creators = [{ firstName: 'Bruno', lastName: 'Latour' }, { name: 'Comitê Invisível' }];
     const { yaml, links } = formatAuthors(creators);

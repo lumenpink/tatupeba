@@ -256,16 +256,32 @@ export function renderInkSvg(ann) {
   for (const path of rawPaths) {
     if (!Array.isArray(path) || path.length === 0) continue;
     const points = [];
-    for (const pt of path) {
-      if (Array.isArray(pt) && pt.length >= 2) {
-        const x = Number(pt[0]);
-        const y = Number(pt[1]);
-        if (!Number.isNaN(x) && !Number.isNaN(y)) {
-          points.push([x, y]);
-          if (x < minX) minX = x;
-          if (y < minY) minY = y;
-          if (x > maxX) maxX = x;
-          if (y > maxY) maxY = y;
+    if (typeof path[0] === 'number') {
+      for (let i = 0; i < path.length; i += 2) {
+        if (i + 1 < path.length) {
+          const x = Number(path[i]);
+          const y = Number(path[i + 1]);
+          if (!Number.isNaN(x) && !Number.isNaN(y)) {
+            points.push([x, y]);
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+    } else {
+      for (const pt of path) {
+        if (Array.isArray(pt) && pt.length >= 2) {
+          const x = Number(pt[0]);
+          const y = Number(pt[1]);
+          if (!Number.isNaN(x) && !Number.isNaN(y)) {
+            points.push([x, y]);
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+          }
         }
       }
     }

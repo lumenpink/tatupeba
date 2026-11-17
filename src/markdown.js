@@ -232,6 +232,72 @@ export function formatBibliographicMeta(reference = {}) {
   return yaml;
 }
 
+export function renderInkSvg(ann) {
+  let pos = ann?.annotationPosition;
+  if (typeof pos === 'string') {
+    try {
+      pos = JSON.parse(pos);
+    } catch {
+      return '';
+    }
+  }
+
+  const rawPaths = pos?.paths || (Array.isArray(pos) ? pos : null);
+  if (!Array.isArray(rawPaths) || rawPaths.length === 0) {
+    return '';
+  }
+
+  let minX = Number.POSITIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+
+  const validPaths = [];
+  for (const path of rawPaths) {
+    if (!Array.isArray(path) || path.length === 0) continue;
+    const points = [];
+    for (const pt of path) {
+      if (Array.isArray(pt) && pt.length >= 2) {
+        const x = Number(pt[0]);
+        const y = Number(pt[1]);
+        if (!Number.isNaN(x) && !Number.isNaN(y)) {
+          points.push([x, y]);
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+    if (points.length > 0) {
+      validPaths.push(points);
+    }
+  }
+
+  if (validPaths.length === 0 || !Number.isFinite(minX)) {
+    return '';
+  }
+
+  const padding = 10;
+  const vbX = Math.floor(minX - padding);
+  const vbY = Math.floor(minY - padding);
+  const vbW = Math.max(20, Math.ceil(maxX - minX + padding * 2));
+  const vbH = Math.max(20, Math.ceil(maxY - minY + padding * 2));
+  const color = ann?.annotationColor || '#000000';
+
+  const pathElements = validPaths
+    .map((pts) => {
+      const d = `M ${pts[0][0]} ${pts[0][1]}${pts
+        .slice(1)
+        .map((p) => ` L ${p[0]} ${p[1]}`)
+        .join('')}`;
+      return `  <path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />`;
+    })
+    .join('\n');
+
+  return `<svg viewBox="${vbX} ${vbY} ${vbW} ${vbH}" width="100%" height="auto" style="max-height: 400px; display: block; margin: 8px 0;" xmlns="http://www.w3.org/2000/svg">\n${pathElements}\n</svg>`;
+}
+
 export function formatAnnotations(itemPdfs, annotationsByPdf) {
   let annotationsMD = '';
 
@@ -244,6 +310,14 @@ export function formatAnnotations(itemPdfs, annotationsByPdf) {
 
       if (ann.annotationType === 'highlight' && ann.annotationText) {
         annotationsMD += `\n> [!quote] Grifo (p. ${pageLabel}) - ${pdfLink}\n> ${ann.annotationText}\n`;
+      }
+
+      if (ann.annotationType === 'ink') {
+        const svg = renderInkSvg(ann);
+        annotationsMD += `\n> [!quote] ✍️ Desenho Livre (p. ${pageLabel}) - ${pdfLink}\n`;
+        if (svg) {
+          annotationsMD += `> ${svg.replace(/\n/g, '\n> ')}\n`;
+        }
       }
 
       if (ann.annotationType === 'image' && ann.imageRelativePath) {

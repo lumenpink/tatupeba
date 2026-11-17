@@ -13,6 +13,7 @@ export {
   formatCollections,
   formatTags,
   generateLiteratureNote,
+  renderInkSvg,
   writeAllNotes
 } from './markdown.js';
 export { startServer } from './server.js';

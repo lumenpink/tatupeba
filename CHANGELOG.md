@@ -9,6 +9,7 @@
   - (ci) tornar caminhos de auditoria de CI relativos (closes #6)
 
 ### Features
+  - (annotations) extrair e renderizar anotacoes ink como svg nativo (closes #12)
   - (markdown) enriquecer frontmatter com metadados bibliograficos completos (closes #11)
   - (markdown) mapear arvore de colecoes e tags zotero prefixadas com zot_ (closes #10)
   - (citekey) gerar citekey no formato Better BibTeX autorTituloAno e eliminar fallback para hashes zotero (closes #9)

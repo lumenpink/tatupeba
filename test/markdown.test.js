@@ -206,6 +206,12 @@ describe('Markdown Generator', () => {
     assert.ok(svg.includes('d="M 100 100 L 120 130"'));
   });
 
+  it('retorna string vazia para ink com json corrompido ou sem caminhos', () => {
+    assert.equal(renderInkSvg({ annotationPosition: '{invalido' }), '');
+    assert.equal(renderInkSvg({ annotationPosition: { paths: [] } }), '');
+    assert.equal(renderInkSvg({ annotationPosition: null }), '');
+  });
+
   it('inclui desenho livre no formatAnnotations com callout e link do PDF', () => {
     const pdfs = [{ key: 'PDFKEY1' }];
     const annotationsByPdf = {

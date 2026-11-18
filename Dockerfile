@@ -1,7 +1,7 @@
 FROM node:24-alpine
 
 # Instala ferramentas do sistema para extração e manipulação gráfica de PDFs
-RUN apk add --no-cache poppler-utils imagemagick
+RUN apk add --no-cache poppler-utils imagemagick imagemagick-svg librsvg
 
 WORKDIR /app
 

@@ -3,11 +3,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
-import {
-  calculateCropBox,
-  findPdfZipInStorage,
-  generatePageOverlaySvg
-} from '../src/extractor.js';
+import { calculateCropBox, findPdfZipInStorage, generatePageOverlaySvg } from '../src/extractor.js';
 
 describe('PDF Annotation Image Extractor', () => {
   describe('calculateCropBox', () => {

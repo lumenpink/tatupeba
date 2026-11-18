@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { processAnnotationImage } from './extractor.js';
 
 const RETRY_MAX = 3;
 const RETRY_BASE_DELAY_MS = 1000;
@@ -127,7 +128,30 @@ export async function syncAnnotationImages(annotations = [], config = {}, onProg
       continue;
     }
 
-    // Baixa o arquivo da API do Zotero
+    // 1. Tenta extrair diretamente do volume WebDAV com sobreposição de inks
+    const storageDir = config.zoteroStorageDir || process.env.ZOTERO_STORAGE_DIR;
+    if (storageDir) {
+      try {
+        if (onProgress) {
+          onProgress({ action: 'extract_annotation_image', key: ann.key });
+        }
+        const extractedRelPath = await processAnnotationImage(ann, annotations, {
+          storageDir,
+          outputDir: attachDir,
+          dpi: 150
+        });
+        if (extractedRelPath) {
+          ann.imageRelativePath = extractedRelPath;
+          continue;
+        }
+      } catch (err) {
+        if (onProgress) {
+          onProgress({ action: 'annotation_extract_warn', key: ann.key, message: err.message });
+        }
+      }
+    }
+
+    // 2. Fallback: tenta baixar o arquivo da API do Zotero
     const url = `https://api.zotero.org/users/${config.userId}/items/${ann.key}/file`;
     try {
       if (onProgress) {

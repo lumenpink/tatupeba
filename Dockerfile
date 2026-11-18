@@ -1,5 +1,8 @@
 FROM node:24-alpine
 
+# Instala ferramentas do sistema para extração e manipulação gráfica de PDFs
+RUN apk add --no-cache poppler-utils imagemagick
+
 WORKDIR /app
 
 # Copia arquivos do projeto (zero dependências npm de produção)

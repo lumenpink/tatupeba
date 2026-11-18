@@ -53,12 +53,19 @@ export function getConfig() {
   const serverToken =
     process.env.TATUPEBA_TOKEN || localEnv.TATUPEBA_TOKEN || userConfig.serverToken || '';
 
+  const zoteroStorageDir =
+    process.env.ZOTERO_STORAGE_DIR ||
+    localEnv.ZOTERO_STORAGE_DIR ||
+    userConfig.zoteroStorageDir ||
+    '/zotero_storage';
+
   return {
     userId,
     apiKey,
     serverToken,
     obsidianRefsDir,
     joajuBibPath,
+    zoteroStorageDir,
     apiVersion: '3'
   };
 }

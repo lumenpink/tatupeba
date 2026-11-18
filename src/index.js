@@ -1,7 +1,12 @@
 import { syncBibTeX } from './bibtex.js';
 import { getConfig } from './config.js';
 import { writeAllNotes } from './markdown.js';
-import { fetchAllCollections, fetchAllItems, organizeEntities } from './zotero.js';
+import {
+  fetchAllCollections,
+  fetchAllItems,
+  organizeEntities,
+  syncAnnotationImages
+} from './zotero.js';
 
 export { cleanBibTeX, countBibEntries, saveBibTeX, syncBibTeX } from './bibtex.js';
 export { getConfig } from './config.js';

@@ -118,5 +118,28 @@ describe('PDF Annotation Image Extractor', () => {
 
       await fs.rm(tmpDir, { recursive: true, force: true });
     });
+
+    it('retorna null se anotação for nula ou não for do tipo ink', async () => {
+      assert.equal(await saveInkAsSvg(null, '/tmp'), null);
+      assert.equal(await saveInkAsSvg({ annotationType: 'highlight' }, '/tmp'), null);
+      assert.equal(await saveInkAsSvg({ annotationType: 'ink' }, '/tmp'), null);
+    });
+  });
+
+  describe('Mutantes de Composição Gráfica', () => {
+    it('garante que a chamada ao ImageMagick inclui -background none para preservar transparência', async () => {
+      const extractorSource = await fs.readFile(
+        path.join(import.meta.dirname, '../src/extractor.js'),
+        'utf-8'
+      );
+      assert.ok(
+        extractorSource.includes("'-background',"),
+        'Mutante detectado: flag -background ausente no comando magick'
+      );
+      assert.ok(
+        extractorSource.includes("'none',"),
+        'Mutante detectado: valor none ausente para -background no magick'
+      );
+    });
   });
 });

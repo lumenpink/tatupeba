@@ -6,6 +6,7 @@
   - (ci) remover campo permissions incompativel com forgejo actions (closes #7)
 
 ### Fixes
+  - (render) salvar svg standalone, preservar transparencia e padronizar callouts (closes #16)
   - (ci) tornar caminhos de auditoria de CI relativos (closes #6)
 
 ### Features

@@ -294,4 +294,68 @@ describe('Markdown Generator', () => {
     assert.ok(formatted.includes('> ![[01_zotero/attachments/RS2MP6LJ.svg]]'));
     assert.ok(!formatted.includes('<svg'));
   });
+
+  it('inverte verticalmente coordenadas Y do ink para renderizar SVG desinvertido', () => {
+    const ann = {
+      annotationType: 'ink',
+      annotationColor: '#2ea8e5',
+      annotationPosition: {
+        // y varia de 100 (base no PDF) a 300 (topo no PDF)
+        paths: [[50, 100, 50, 300]]
+      }
+    };
+    const svg = renderInkSvg(ann);
+    // No SVG desinvertido:
+    // O ponto original y=100 (base no PDF) deve se tornar y=300 (base no SVG)
+    // O ponto original y=300 (topo no PDF) deve se tornar y=100 (topo no SVG)
+    assert.ok(svg.includes('d="M 50 300 L 50 100"'));
+  });
+
+  it('ordena anotacoes por pageIndex crescente e topY decrescente no formatAnnotations', () => {
+    const pdfs = [{ key: 'PDFKEY1' }];
+    const annotationsByPdf = {
+      PDFKEY1: [
+        {
+          key: 'ANN_P138_BOTTOM',
+          annotationType: 'highlight',
+          annotationText: 'Texto p138 baixo',
+          annotationPageLabel: '138',
+          annotationPosition: { pageIndex: 3, rects: [[10, 100, 50, 150]] } // topY = 150
+        },
+        {
+          key: 'ANN_P139',
+          annotationType: 'highlight',
+          annotationText: 'Texto p139',
+          annotationPageLabel: '139',
+          annotationPosition: { pageIndex: 4, rects: [[10, 200, 50, 250]] }
+        },
+        {
+          key: 'ANN_P138_TOP',
+          annotationType: 'highlight',
+          annotationText: 'Texto p138 topo',
+          annotationPageLabel: '138',
+          annotationPosition: { pageIndex: 3, rects: [[10, 400, 50, 450]] } // topY = 450
+        },
+        {
+          key: 'ANN_P137',
+          annotationType: 'highlight',
+          annotationText: 'Texto p137',
+          annotationPageLabel: '137',
+          annotationPosition: { pageIndex: 2, rects: [[10, 100, 50, 150]] }
+        }
+      ]
+    };
+
+    const formatted = formatAnnotations(pdfs, annotationsByPdf);
+
+    const idx137 = formatted.indexOf('Texto p137');
+    const idx138Top = formatted.indexOf('Texto p138 topo');
+    const idx138Bottom = formatted.indexOf('Texto p138 baixo');
+    const idx139 = formatted.indexOf('Texto p139');
+
+    // Ordem esperada: p.137 -> p.138 topo -> p.138 baixo -> p.139
+    assert.ok(idx137 < idx138Top, 'p.137 deve vir antes de p.138 topo');
+    assert.ok(idx138Top < idx138Bottom, 'p.138 topo deve vir antes de p.138 baixo');
+    assert.ok(idx138Bottom < idx139, 'p.138 baixo deve vir antes de p.139');
+  });
 });

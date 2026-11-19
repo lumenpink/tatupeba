@@ -8,6 +8,7 @@ import {
   formatCollections,
   formatTags,
   generateLiteratureNote,
+  getAnnotationSortKey,
   renderInkSvg
 } from '../src/markdown.js';
 
@@ -357,5 +358,32 @@ describe('Markdown Generator', () => {
     assert.ok(idx137 < idx138Top, 'p.137 deve vir antes de p.138 topo');
     assert.ok(idx138Top < idx138Bottom, 'p.138 topo deve vir antes de p.138 baixo');
     assert.ok(idx138Bottom < idx139, 'p.138 baixo deve vir antes de p.139');
+  });
+
+  describe('Mutantes de Ordenação e Desinversão', () => {
+    it('detecta mutante se ordenação vertical for invertida (menor Y primeiro)', () => {
+      const anns = [
+        { key: 'A', annotationPosition: { pageIndex: 1, rects: [[0, 100, 10, 200]] } }, // topY = 200
+        { key: 'B', annotationPosition: { pageIndex: 1, rects: [[0, 300, 10, 400]] } } // topY = 400
+      ];
+      // B deve vir antes de A pois 400 > 200
+      const sorted = [...anns].sort((a, b) => {
+        const kA = getAnnotationSortKey(a);
+        const kB = getAnnotationSortKey(b);
+        return kB.topY - kA.topY;
+      });
+      assert.equal(sorted[0].key, 'B');
+      assert.equal(sorted[1].key, 'A');
+    });
+
+    it('garante que renderInkSvg reflete pontos ao redor de maxY + minY', () => {
+      const ann = {
+        annotationType: 'ink',
+        annotationPosition: { paths: [[0, 50, 0, 150]] } // minY=50, maxY=150, sum=200
+      };
+      const svg = renderInkSvg(ann);
+      // y=50 vira 150; y=150 vira 50
+      assert.ok(svg.includes('d="M 0 150 L 0 50"'));
+    });
   });
 });

@@ -329,15 +329,20 @@ export function formatAnnotations(itemPdfs, annotationsByPdf) {
       }
 
       if (ann.annotationType === 'ink') {
-        const svg = renderInkSvg(ann);
-        annotationsMD += `\n> [!quote] ✍️ Desenho Livre (p. ${pageLabel}) - ${pdfLink}\n`;
-        if (svg) {
-          annotationsMD += `> ${svg.replace(/\n/g, '\n> ')}\n`;
+        const inkRelPath = ann.imageRelativePath;
+        if (inkRelPath) {
+          annotationsMD += `\n> [!quote] ✍️ Desenho Livre (p. ${pageLabel}) - ${pdfLink}\n> ![[${inkRelPath}]]\n`;
+        } else {
+          const svg = renderInkSvg(ann);
+          annotationsMD += `\n> [!quote] ✍️ Desenho Livre (p. ${pageLabel}) - ${pdfLink}\n`;
+          if (svg) {
+            annotationsMD += `> ${svg.replace(/\n/g, '\n> ')}\n`;
+          }
         }
       }
 
       if (ann.annotationType === 'image' && ann.imageRelativePath) {
-        annotationsMD += `\n![[${ann.imageRelativePath}]]\n*Legenda: Imagem p. ${pageLabel} - ${pdfLink}*\n`;
+        annotationsMD += `\n> [!quote] 📷 Imagem (p. ${pageLabel}) - ${pdfLink}\n> ![[${ann.imageRelativePath}]]\n`;
       }
 
       if (ann.annotationComment) {

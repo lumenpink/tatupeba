@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { renderInkSvg } from './markdown.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -265,11 +266,11 @@ export async function processAnnotationImage(ann, allInks = [], options = {}) {
 
       const composedPath = path.join(tmpDir, 'composed.png');
       await execFileAsync('magick', [
-        'composite',
-        '-compose',
-        'over',
-        svgPath,
+        '-background',
+        'none',
         currentBaseImage,
+        svgPath,
+        '-composite',
         composedPath
       ]);
       currentBaseImage = composedPath;
@@ -296,4 +297,24 @@ export async function processAnnotationImage(ann, allInks = [], options = {}) {
   } finally {
     await fs.rm(tmpDir, { recursive: true, force: true });
   }
+}
+
+/**
+ * Persiste uma anotação do tipo 'ink' como arquivo .svg standalone em 01_zotero/attachments.
+ *
+ * @param {object} ann
+ * @param {string} outputDir
+ * @returns {Promise<string|null>} Caminho relativo ou null
+ */
+export async function saveInkAsSvg(ann, outputDir) {
+  if (!ann || ann.annotationType !== 'ink' || !ann.key) return null;
+  const svg = renderInkSvg(ann);
+  if (!svg) return null;
+
+  await fs.mkdir(outputDir, { recursive: true });
+  const fileName = `${ann.key}.svg`;
+  const filePath = path.join(outputDir, fileName);
+  await fs.writeFile(filePath, svg, 'utf-8');
+
+  return `01_zotero/attachments/${fileName}`;
 }

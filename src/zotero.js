@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { processAnnotationImage } from './extractor.js';
+import { processAnnotationImage, saveInkAsSvg } from './extractor.js';
 
 const RETRY_MAX = 3;
 const RETRY_BASE_DELAY_MS = 1000;
@@ -109,6 +109,40 @@ export async function syncAnnotationImages(annotations = [], config = {}, onProg
   };
 
   for (const ann of annotations) {
+    if (ann.annotationType === 'ink') {
+      const fileName = `${ann.key}.svg`;
+      const localPath = path.join(attachDir, fileName);
+      const relPath = `01_zotero/attachments/${fileName}`;
+
+      let exists = false;
+      try {
+        await fs.access(localPath);
+        exists = true;
+      } catch {
+        exists = false;
+      }
+
+      if (exists) {
+        ann.imageRelativePath = relPath;
+        continue;
+      }
+
+      try {
+        if (onProgress) {
+          onProgress({ action: 'save_ink_svg', key: ann.key });
+        }
+        const savedRelPath = await saveInkAsSvg(ann, attachDir);
+        if (savedRelPath) {
+          ann.imageRelativePath = savedRelPath;
+        }
+      } catch (err) {
+        if (onProgress) {
+          onProgress({ action: 'ink_save_warn', key: ann.key, message: err.message });
+        }
+      }
+      continue;
+    }
+
     if (ann.annotationType !== 'image') continue;
 
     const fileName = `${ann.key}.png`;

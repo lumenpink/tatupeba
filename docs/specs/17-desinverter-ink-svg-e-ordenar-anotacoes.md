@@ -45,3 +45,8 @@ Após a transclusão visual de desenhos vetoriais (*ink*) e imagens de anotaçõ
 ## 4. Resultados do Quality Gate (Fase 8)
 - `npm test`: 43 testes unitários e de mutação passando (100% GREEN).
 - `npx @biomejs/biome check`: 15 arquivos analisados, 0 erros e 0 avisos de formatação/linting.
+
+---
+
+## 5. Fechamento (Fase 9)
+- **Status:** Concluído / Fechado (closes #17).

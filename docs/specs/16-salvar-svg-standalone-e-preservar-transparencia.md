@@ -3,7 +3,7 @@
 - **Ticket:** [#16](https://gambi.2lp.in/lumen/tatupeba/issues/16)
 - **Branch:** `fix/16-salvar-svg-standalone-e-preservar-transparencia-em-imagem`
 - **Norma:** GOST 1.5.0 (DD-TDD)
-- **Status:** Fase 3 (Spec)
+- **Status:** Fase 8 (Quality Gate)
 - **Responsável:** Lumen Pink & Antigravity
 
 ---
@@ -45,3 +45,9 @@ Na integração do Zotero com o Obsidian através do `tatupeba`, foram identific
      ```
    - Se `ann.imageRelativePath` não estiver disponível para `ink`, manter fallback gracioso.
 4. Testes unitários cobrindo a presença de `-background none`, a geração de SVG standalone e o formato dos callouts.
+
+---
+
+## 4. Resultados do Quality Gate (Fase 8)
+- `npm test`: 39 testes unitários e de mutação passando (100% GREEN).
+- `npx @biomejs/biome check`: 15 arquivos analisados, 0 erros e 0 avisos de formatação/linting.

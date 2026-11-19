@@ -301,11 +301,12 @@ export function renderInkSvg(ann) {
   const vbH = Math.max(20, Math.ceil(maxY - minY + padding * 2));
   const color = ann?.annotationColor || '#000000';
 
+  const sumY = maxY + minY;
   const pathElements = validPaths
     .map((pts) => {
-      const d = `M ${pts[0][0]} ${pts[0][1]}${pts
+      const d = `M ${pts[0][0]} ${Number((sumY - pts[0][1]).toFixed(3))}${pts
         .slice(1)
-        .map((p) => ` L ${p[0]} ${p[1]}`)
+        .map((p) => ` L ${p[0]} ${Number((sumY - p[1]).toFixed(3))}`)
         .join('')}`;
       return `  <path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />`;
     })
@@ -314,13 +315,86 @@ export function renderInkSvg(ann) {
   return `<svg viewBox="${vbX} ${vbY} ${vbW} ${vbH}" width="100%" height="auto" style="max-height: 400px; display: block; margin: 8px 0;" xmlns="http://www.w3.org/2000/svg">\n${pathElements}\n</svg>`;
 }
 
+export function getAnnotationSortKey(ann) {
+  let pos = ann?.annotationPosition;
+  if (typeof pos === 'string') {
+    try {
+      pos = JSON.parse(pos);
+    } catch {
+      pos = null;
+    }
+  }
+
+  let pageIndex = pos?.pageIndex;
+  if (typeof pageIndex !== 'number') {
+    const parsed = Number.parseInt(ann?.annotationPageLabel, 10);
+    pageIndex = Number.isNaN(parsed) ? 0 : parsed;
+  }
+
+  let topY = 0;
+  let leftX = 0;
+
+  if (Array.isArray(pos?.rects) && pos.rects.length > 0) {
+    const r = pos.rects[0];
+    if (Array.isArray(r) && r.length >= 4) {
+      leftX = Math.min(r[0], r[2]);
+      topY = Math.max(r[1], r[3]);
+    }
+  } else if (Array.isArray(pos?.paths) && pos.paths.length > 0) {
+    let maxY = Number.NEGATIVE_INFINITY;
+    let minX = Number.POSITIVE_INFINITY;
+    for (const path of pos.paths) {
+      if (!Array.isArray(path)) continue;
+      if (typeof path[0] === 'number') {
+        for (let i = 0; i < path.length; i += 2) {
+          if (i + 1 < path.length) {
+            const x = Number(path[i]);
+            const y = Number(path[i + 1]);
+            if (!Number.isNaN(x) && x < minX) minX = x;
+            if (!Number.isNaN(y) && y > maxY) maxY = y;
+          }
+        }
+      } else {
+        for (const pt of path) {
+          if (Array.isArray(pt) && pt.length >= 2) {
+            const x = Number(pt[0]);
+            const y = Number(pt[1]);
+            if (!Number.isNaN(x) && x < minX) minX = x;
+            if (!Number.isNaN(y) && y > maxY) maxY = y;
+          }
+        }
+      }
+    }
+    if (Number.isFinite(maxY)) topY = maxY;
+    if (Number.isFinite(minX)) leftX = minX;
+  } else if (Array.isArray(pos?.point) && pos.point.length >= 2) {
+    leftX = Number(pos.point[0]) || 0;
+    topY = Number(pos.point[1]) || 0;
+  }
+
+  return { pageIndex, topY, leftX };
+}
+
 export function formatAnnotations(itemPdfs, annotationsByPdf) {
   let annotationsMD = '';
 
   for (const pdf of itemPdfs) {
     const pdfAnns = annotationsByPdf[pdf.key] || [];
 
-    for (const ann of pdfAnns) {
+    const sortedAnns = [...pdfAnns].sort((a, b) => {
+      const keyA = getAnnotationSortKey(a);
+      const keyB = getAnnotationSortKey(b);
+
+      if (keyA.pageIndex !== keyB.pageIndex) {
+        return keyA.pageIndex - keyB.pageIndex;
+      }
+      if (keyA.topY !== keyB.topY) {
+        return keyB.topY - keyA.topY; // maior Y (topo do PDF) vem primeiro
+      }
+      return keyA.leftX - keyB.leftX;
+    });
+
+    for (const ann of sortedAnns) {
       const pageLabel = ann.annotationPageLabel || '1';
       const pdfLink = `[Ver no PDF](zotero://open-pdf/library/items/${pdf.key}?page=${pageLabel})`;
 

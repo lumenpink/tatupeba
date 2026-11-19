@@ -202,8 +202,8 @@ describe('Markdown Generator', () => {
     const svg = renderInkSvg(ann);
     assert.ok(svg.includes('<svg'));
     assert.ok(svg.includes('stroke="#ff2200"'));
-    assert.ok(svg.includes('d="M 10 20 L 30 40 L 50 60"'));
-    assert.ok(svg.includes('d="M 100 100 L 120 130"'));
+    assert.ok(svg.includes('d="M 10 130 L 30 110 L 50 90"'));
+    assert.ok(svg.includes('d="M 100 50 L 120 20"'));
   });
 
   it('renderiza tracos ink com array linear de coordenadas (padrao real Zotero)', () => {
@@ -217,7 +217,7 @@ describe('Markdown Generator', () => {
     const svg = renderInkSvg(ann);
     assert.ok(svg.includes('<svg'));
     assert.ok(svg.includes('stroke="#ff6666"'));
-    assert.ok(svg.includes('d="M 192.364 208.835 L 193.606 208.695 L 194.816 208.6"'));
+    assert.ok(svg.includes('d="M 192.364 208.6 L 193.606 208.74 L 194.816 208.835"'));
   });
 
   it('retorna string vazia para ink com json corrompido ou sem caminhos', () => {

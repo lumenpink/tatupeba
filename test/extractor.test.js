@@ -3,7 +3,12 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
-import { calculateCropBox, findPdfZipInStorage, generatePageOverlaySvg } from '../src/extractor.js';
+import {
+  calculateCropBox,
+  findPdfZipInStorage,
+  generatePageOverlaySvg,
+  saveInkAsSvg
+} from '../src/extractor.js';
 
 describe('PDF Annotation Image Extractor', () => {
   describe('calculateCropBox', () => {
@@ -87,6 +92,29 @@ describe('PDF Annotation Image Extractor', () => {
 
       const notFound = await findPdfZipInStorage(tmpDir, 'INEXISTENTE');
       assert.equal(notFound, null);
+
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    });
+  });
+
+  describe('saveInkAsSvg', () => {
+    it('persiste anotação ink como arquivo .svg standalone em 01_zotero/attachments', async () => {
+      const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'tatupeba-ink-test-'));
+      const ann = {
+        key: 'INK123',
+        annotationType: 'ink',
+        annotationColor: '#2ea8e5',
+        annotationPosition: {
+          paths: [[10, 20, 30, 40]]
+        }
+      };
+
+      const relPath = await saveInkAsSvg(ann, tmpDir);
+      assert.equal(relPath, '01_zotero/attachments/INK123.svg');
+
+      const savedContent = await fs.readFile(path.join(tmpDir, 'INK123.svg'), 'utf-8');
+      assert.ok(savedContent.includes('<svg'));
+      assert.ok(savedContent.includes('stroke="#2ea8e5"'));
 
       await fs.rm(tmpDir, { recursive: true, force: true });
     });

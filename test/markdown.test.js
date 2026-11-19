@@ -251,4 +251,47 @@ describe('Markdown Generator', () => {
     assert.ok(formatted.includes('stroke="#0055ff"'));
     assert.ok(formatted.includes('zotero://open-pdf/library/items/PDFKEY1?page=15'));
   });
+
+  it('formata imagem como callout padronizado com link do PDF e transclusao', () => {
+    const pdfs = [{ key: 'PDFKEY1' }];
+    const annotationsByPdf = {
+      PDFKEY1: [
+        {
+          annotationType: 'image',
+          annotationPageLabel: '8',
+          imageRelativePath: '01_zotero/attachments/VCUI8KDL.png'
+        }
+      ]
+    };
+    const formatted = formatAnnotations(pdfs, annotationsByPdf);
+    assert.ok(
+      formatted.includes(
+        '> [!quote] 📷 Imagem (p. 8) - [Ver no PDF](zotero://open-pdf/library/items/PDFKEY1?page=8)'
+      )
+    );
+    assert.ok(formatted.includes('> ![[01_zotero/attachments/VCUI8KDL.png]]'));
+    assert.ok(!formatted.includes('*Legenda: Imagem'));
+  });
+
+  it('formata desenho livre via transclusao quando houver imageRelativePath', () => {
+    const pdfs = [{ key: 'PDFKEY1' }];
+    const annotationsByPdf = {
+      PDFKEY1: [
+        {
+          key: 'RS2MP6LJ',
+          annotationType: 'ink',
+          annotationPageLabel: '138',
+          imageRelativePath: '01_zotero/attachments/RS2MP6LJ.svg'
+        }
+      ]
+    };
+    const formatted = formatAnnotations(pdfs, annotationsByPdf);
+    assert.ok(
+      formatted.includes(
+        '> [!quote] ✍️ Desenho Livre (p. 138) - [Ver no PDF](zotero://open-pdf/library/items/PDFKEY1?page=138)'
+      )
+    );
+    assert.ok(formatted.includes('> ![[01_zotero/attachments/RS2MP6LJ.svg]]'));
+    assert.ok(!formatted.includes('<svg'));
+  });
 });

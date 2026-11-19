@@ -3,7 +3,7 @@
 - **Ticket:** [#17](https://gambi.2lp.in/lumen/tatupeba/issues/17)
 - **Branch:** `fix/17-desinverter-ink-svg-e-ordenar-anotacoes-por-pagina`
 - **Norma:** GOST 1.5.0 (DD-TDD)
-- **Status:** Fase 3 (Spec)
+- **Status:** Fase 8 (Quality Gate)
 - **Responsável:** Lumen Pink & Antigravity
 
 ---
@@ -39,3 +39,9 @@ Após a transclusão visual de desenhos vetoriais (*ink*) e imagens de anotaçõ
    - Que `renderInkSvg` reflete os pontos verticais.
    - Que anotações fora de ordem são ordenadas por página e posição na folha.
 3. Testes de mutação protegendo a lógica de ordenação e a inversão vertical.
+
+---
+
+## 4. Resultados do Quality Gate (Fase 8)
+- `npm test`: 43 testes unitários e de mutação passando (100% GREEN).
+- `npx @biomejs/biome check`: 15 arquivos analisados, 0 erros e 0 avisos de formatação/linting.

@@ -1,4 +1,4 @@
-name: CI, Build & Sovereign CD
+name: CI, Build & Autonomous CD
 
 on:
   push:
@@ -23,10 +23,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: "Format Check"
+        run: npx @biomejs/biome check . || npx prettier --check .
+
       - name: "Run Node.js Tests"
         run: node --test
 
-      - name: "Audit Sovereign CD Workflow"
+      - name: "Audit Autonomous CD Workflow"
         run: bash test/audit_cd_workflow.sh
 
       - name: "CCCP Quality Audit"
@@ -183,7 +186,7 @@ jobs:
           fi
 
   build-and-deploy-docker:
-    name: "Container — Build & Sovereign CD (obitwo)"
+    name: "Container — Build & Autonomous CD (obitwo)"
     runs-on: ubuntu-latest
     needs: [test]
     if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && github.event_name == 'push'

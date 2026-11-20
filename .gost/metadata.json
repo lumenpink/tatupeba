@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0.0",
+  "slug": "tatupeba",
+  "title": "Tatupeba",
+  "site_type": "app",
+  "tagline": "Extrator e sincronizador do acervo Zotero para Obsidian e Joaju",
+  "summary": "Utilitário CLI e serviço de sincronização do acervo Zotero para bases de conhecimento em Markdown.",
+  "abstract": "O Tatupeba é uma ferramenta em JavaScript/Node.js concebida para extrair, parsear e sincronizar bibliotecas bibliográficas Zotero diretamente para vaults do Obsidian e instâncias Joaju.",
+  "tags": [
+    "tatupeba",
+    "zotero",
+    "obsidian",
+    "sync",
+    "javascript",
+    "cli"
+  ],
+  "icon": "🦔",
+  "theme": {
+    "bg_color": "#1e1e2e",
+    "accent_color": "#fab387"
+  }
+}

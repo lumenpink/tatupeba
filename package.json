@@ -1,6 +1,6 @@
 {
   "name": "tatupeba",
-  "version": "0.1.0-dev.1",
+  "version": "0.1.0-dev.82+20261119.d92bdbe",
   "description": "Extrator e sincronizador do acervo Zotero para Obsidian e Joaju",
   "type": "module",
   "main": "src/index.js",

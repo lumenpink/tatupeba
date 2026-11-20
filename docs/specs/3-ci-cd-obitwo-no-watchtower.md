@@ -9,15 +9,15 @@
 
 ### 1. Escopo e Objetivos
 
-Esta especificação define o pipeline soberano de entrega contínua (Continuous Deployment - CD) da aplicação **Tatupeba (`tatupeba`)** no nó de borda **obitwo** através da malha segura Tailscale/SSH, eliminando de forma definitiva a dependência do Watchtower:
+Esta especificação define o pipeline autônomo de entrega contínua (Continuous Deployment - CD) da aplicação **Tatupeba (`tatupeba`)** no nó de borda **obitwo** através da malha segura Tailscale/SSH, eliminando de forma definitiva a dependência do Watchtower:
 
 1. **Construção Hermética e Publicação:**
-   - Imagem Docker `lumenpink/tatupeba:latest` gerada pelo Forgejo Runner soberano.
+   - Imagem Docker `lumenpink/tatupeba:latest` gerada pelo Forgejo Runner primário.
    - Publicação no Docker Hub com credenciais do repositório (`DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN`).
 2. **Descomissionamento Compulsório do Watchtower:**
    - Veto irrestrito a `com.centurylinklabs.watchtower.enable`.
    - Remoção de qualquer webhook HTTP ou gatilho legado do Watchtower.
-3. **Deploy Remoto Soberano no obitwo:**
+3. **Deploy Remoto Autônomo no obitwo:**
    - Conexão via SSH (`ubuntu@obitwo` ou `ubuntu@100.90.43.39`) através de chave ED25519 (`OBITWO_SSH_KEY`).
    - Execução remota no diretório `~/stacks/tatupeba`:
      ```bash

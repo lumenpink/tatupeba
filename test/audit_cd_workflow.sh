@@ -42,7 +42,7 @@ fi
 check_not_present 'WATCHTOWER' "Ausência de variáveis e webhooks do Watchtower" || FAILED=1
 check_not_present 'watchtower' "Ausência de referências literais ao Watchtower" || FAILED=1
 
-# 3. Deploy remoto soberano no obitwo
+# 3. Deploy remoto autônomo no obitwo
 check_present 'obitwo' "Destino de deploy remoto no obitwo" || FAILED=1
 check_present 'docker compose pull tatupeba' "Comando de pull da nova imagem no obitwo" || FAILED=1
 check_present 'docker compose up -d --no-build tatupeba' "Comando de restart local sem build redundante" || FAILED=1
@@ -83,4 +83,4 @@ if [ $FAILED -ne 0 ]; then
     exit 1
 fi
 
-echo "✔ [GREEN TEST] Auditoria aprovada: esteira unificada e CD soberano validados."
+echo "✔ [GREEN TEST] Auditoria aprovada: esteira unificada e CD autônomo validados."

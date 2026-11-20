@@ -10,8 +10,9 @@ COPY package.json ./
 COPY bin ./bin
 COPY src ./src
 
-# Garante permissões de execução
+# Garante permissões de execução e usuário sem privilégios
 RUN chmod +x bin/tatupeba.js
+USER 1000:1000
 
 # Variáveis padrão
 ENV PORT=3001

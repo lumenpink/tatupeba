@@ -6,6 +6,7 @@
   - (ci) remover campo permissions incompativel com forgejo actions (closes #7)
 
 ### Fixes
+  - (ci) instalar dependencias com npm ci antes do biome check e atualizar KOLLONTAI-018 (closes #19)
   - (render) desinverter ink svg e ordenar anotacoes por leitura (closes #17)
   - (render) salvar svg standalone, preservar transparencia e padronizar callouts (closes #16)
   - (ci) tornar caminhos de auditoria de CI relativos (closes #6)

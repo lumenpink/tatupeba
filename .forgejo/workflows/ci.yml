@@ -23,8 +23,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: "Install Dependencies"
+        run: npm ci
+
       - name: "Format Check"
-        run: npx @biomejs/biome check . || npx prettier --check .
+        run: npx biome check . || npx prettier --check .
 
       - name: "Run Node.js Tests"
         run: node --test
@@ -35,6 +38,7 @@ jobs:
       - name: "CCCP Quality Audit"
         run: |
           if command -v cccp >/dev/null 2>&1; then
+            cccp hook -i || true
             cccp check --strict || true
           fi
 

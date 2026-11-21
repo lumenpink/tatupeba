@@ -1,8 +1,8 @@
 # Manifesto Declarativo de Continuous Deployment (CD) — Tatupeba
-# Conforme convenções de presença ativa da Metanorma GOST v3.0
-
 [binaries]
 target = "banca"
 
-[containers]
-target = "dockerhub"
+[services]
+stack = "tatupeba"
+node = "obitwo"
+healthz = "http://127.0.0.1:8080/status"
